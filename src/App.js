@@ -13,13 +13,24 @@ import {
   Field,
   Control,
   Icon,
-  Hero
+  Hero,
+  Box
 } from "rbx";
 
 const App = () => {
   const [data, setData] = useState({});
   const [openSidebar, setOpenSidebar] = useState(false);
   const [cart, setCart] = useState([]);
+
+  const { totalCost, totalCount } = cart.reduce(
+    (acc, curr) => {
+      return {
+        totalCost: curr.count * curr.product.price + acc.totalCost,
+        totalCount: curr.count + acc.totalCount
+      };
+    },
+    { totalCost: 0, totalCount: 0 }
+  );
 
   const addCartItem = item => {
     const itemExists = cart.some(
@@ -32,14 +43,46 @@ const App = () => {
           newCart[i].count += 1;
         }
       }
-      console.log(newCart);
       setCart(newCart);
     } else {
-      console.log([...cart, item]);
       setCart([...cart, item]);
     }
 
     setOpenSidebar(true);
+  };
+
+  const incrementCartItem = item => {
+    let newCart = [...cart];
+    for (let i = 0; i < newCart.length; i++) {
+      if (newCart[i].sku === item.sku && newCart[i].size === item.size) {
+        newCart[i].count += 1;
+      }
+    }
+    setCart(newCart);
+  };
+
+  const decrementCartItem = item => {
+    let newCart = [...cart];
+    for (let i = 0; i < newCart.length; i++) {
+      if (newCart[i].sku === item.sku && newCart[i].size === item.size) {
+        if (newCart[i].count > 1) {
+          newCart[i].count -= 1;
+        } else {
+          newCart.splice(i, 1);
+        }
+      }
+    }
+    setCart(newCart);
+  };
+
+  const removeCartItem = item => {
+    let newCart = [...cart];
+    for (let i = 0; i < newCart.length; i++) {
+      if (newCart[i].sku === item.sku && newCart[i].size === item.size) {
+        newCart.splice(i, 1);
+      }
+    }
+    setCart(newCart);
   };
 
   const products = Object.values(data);
@@ -97,9 +140,22 @@ const App = () => {
                     <Title as="h2" subtitle>
                       Your items:
                     </Title>
+                    <Box color="primary" textAlign="centered">
+                      <small>Cost: ${totalCost.toFixed(2)}</small>
+                      <br />
+                      <small>Items : {totalCount}</small>
+                    </Box>
                     <div style={{ margin: "10px 0" }}>
                       {cart.map(cartItem => (
-                        <CartCard key={`${cartItem.sku} | ${cartItem.size}`} item={cartItem} />
+                        <CartCard
+                          state={{
+                            incrementCartItem,
+                            decrementCartItem,
+                            removeCartItem
+                          }}
+                          key={`${cartItem.sku} | ${cartItem.size}`}
+                          item={cartItem}
+                        />
                       ))}
                     </div>
                     <Button
