@@ -8,6 +8,13 @@ import "firebase/auth";
 import StyledFirebaseAuth from "react-firebaseui/StyledFirebaseAuth";
 import { firebaseDb } from "./components/shared/firebaseDb";
 
+import {
+  getUserCartItems,
+  setUserCartItem,
+  firebaseDeleteCartItem,
+  buyCartItem
+} from "./components/shared/firebaseInventoryUtils";
+
 import "rbx/index.css";
 import "./App.css";
 import {
@@ -20,7 +27,9 @@ import {
   Control,
   Icon,
   Hero,
-  Box
+  Box,
+  Message,
+  Delete
 } from "rbx";
 
 const uiConfig = {
@@ -36,6 +45,7 @@ const App = () => {
   const [data, setData] = useState({});
   const [inventory, setInventory] = useState({});
   const [openSidebar, setOpenSidebar] = useState(false);
+  const [displayCartChange, setDisplayCartChange] = useState(false);
   const [cart, setCart] = useState([]);
 
   const { totalCost, totalCount } = cart.reduce(
@@ -62,12 +72,13 @@ const App = () => {
         if (newCart[i].sku === item.sku && newCart[i].size === item.size) {
           // check if it doesn't exceed inventory
           if (inventory[newCart[i].sku][newCart[i].size] > newCart[i].count) {
-            newCart[i].count += 1;
+            newCart[i].count += item.count;
             if (
               newCart[i].count === inventory[newCart[i].sku][newCart[i].size]
             ) {
               resetSelect();
             }
+            if (user) setUserCartItem(user, item.sku, item.size, newCart[i].count);
           } else {
             return;
           }
@@ -79,9 +90,32 @@ const App = () => {
         resetSelect();
       }
       setCart([...cart, item]);
+      if (user) setUserCartItem(user, item.sku, item.size, item.count);
     }
 
     setOpenSidebar(true);
+  };
+
+  const verifyCartSelection = async () => {
+    let mismatch = false;
+    
+    for (let item of cart) {
+      if (inventory[item.sku][item.size] < item.count) {
+        mismatch = true;
+        await decrementCartItem(item);
+      }
+    }
+
+    if (mismatch) {
+      await firebaseDb
+      .child("carts")
+      .child(user.uid)
+      .remove();
+  
+      cart.map(async item => await setUserCartItem(user, item.sku, item.size, item.count));
+  
+      setDisplayCartChange(true);
+    }
   };
 
   const incrementCartItem = item => {
@@ -91,6 +125,7 @@ const App = () => {
         // check if it doesn't exceed inventory
         if (inventory[newCart[i].sku][newCart[i].size] > newCart[i].count) {
           newCart[i].count += 1;
+          if (user) setUserCartItem(user, item.sku, item.size, newCart[i].count);
         } else {
           return;
         }
@@ -105,6 +140,7 @@ const App = () => {
       if (newCart[i].sku === item.sku && newCart[i].size === item.size) {
         if (newCart[i].count > 1) {
           newCart[i].count -= 1;
+          if (user) setUserCartItem(user, item.sku, item.size, newCart[i].count);
         } else {
           newCart.splice(i, 1);
         }
@@ -118,6 +154,7 @@ const App = () => {
     for (let i = 0; i < newCart.length; i++) {
       if (newCart[i].sku === item.sku && newCart[i].size === item.size) {
         newCart.splice(i, 1);
+        if (user) firebaseDeleteCartItem(user, item.sku, item.size);
       }
     }
     setCart(newCart);
@@ -151,7 +188,33 @@ const App = () => {
 
   useEffect(() => {
     firebase.auth().onAuthStateChanged(setUser);
-  }, []);
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user) {
+        return;
+      }
+
+      getUserCartItems(user).then(cartItems => {
+        if (cartItems !== null) {
+          const userItems = Object.values(cartItems).map(item => {
+            const product = data ? data[item.sku] : null;
+            const price = product
+              ? `$${parseFloat(product.price).toFixed(2)}`
+              : null;
+
+            return {
+              sku: item.sku,
+              size: item.size,
+              price,
+              count: item.count,
+              product
+            };
+          });
+
+          setCart(userItems.filter(item => item.price !== null));
+        }
+      });
+    });
+  }, [data]);
 
   return (
     <React.Fragment>
@@ -175,7 +238,11 @@ const App = () => {
                   </div>
                   <Button
                     primary="true"
-                    onClick={() => firebase.auth().signOut()}
+                    onClick={() => {
+                      setCart([]);
+                      firebase.auth().signOut();
+                      setOpenSidebar(false);
+                    }}
                   >
                     Log out
                   </Button>
@@ -193,7 +260,11 @@ const App = () => {
                 <Control>
                   <Button
                     color="primary"
-                    onClick={() => setOpenSidebar(!openSidebar)}
+                    onClick={() => {
+                      setOpenSidebar(!openSidebar);
+
+                      verifyCartSelection();
+                    }}
                   >
                     <Icon>ƒ</Icon>
                     <span>Cart</span>
@@ -215,6 +286,21 @@ const App = () => {
                     <Title as="h2" subtitle>
                       Your items:
                     </Title>
+                    {displayCartChange && (
+                      <Message color="warning">
+                        <Message.Header>
+                          <p>Your cart has been adjusted.</p>
+                          <Delete
+                            as="button"
+                            onClick={() => setDisplayCartChange(false)}
+                          />
+                        </Message.Header>
+                        <Message.Body>
+                          The inventory have changed since the last time you
+                          have visited.
+                        </Message.Body>
+                      </Message>
+                    )}
                     <Box color="primary" textAlign="centered">
                       <small>Cost: ${totalCost.toFixed(2)}</small>
                       <br />
@@ -238,6 +324,16 @@ const App = () => {
                       textColor={"white"}
                       fullwidth
                       size={"medium"}
+                      disabled={!user}
+                      onClick={() => {
+                        if (cart.length > 0) {
+                          for (let item of cart) {
+                            buyCartItem(item.sku, item.size, item.count);
+                          }
+
+                          setCart([]);
+                        }
+                      }}
                     >
                       Checkout
                     </Button>
