@@ -4,6 +4,7 @@ import ProductCard from "./components/ProductCard";
 import CartCard from "./components/CartCard";
 
 import "rbx/index.css";
+import "./App.css";
 import {
   Column,
   Title,
@@ -19,6 +20,7 @@ import {
 
 const App = () => {
   const [data, setData] = useState({});
+  const [inventory, setInventory] = useState({});
   const [openSidebar, setOpenSidebar] = useState(false);
   const [cart, setCart] = useState([]);
 
@@ -33,6 +35,10 @@ const App = () => {
   );
 
   const addCartItem = item => {
+    if (item.size === undefined) {
+      return;
+    }
+
     const itemExists = cart.some(
       x => x.sku === item.sku && x.size === item.size
     );
@@ -97,6 +103,15 @@ const App = () => {
       setData(json);
     };
     fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    const fetchInventory = async () => {
+      const response = await fetch("./data/inventory.json");
+      const json = await response.json();
+      setInventory(json);
+    };
+    fetchInventory();
   }, []);
 
   return (
@@ -192,7 +207,11 @@ const App = () => {
             <Column.Group key={idx}>
               {products.map(product => (
                 <Column size={3} key={product.sku}>
-                  <ProductCard product={product} addCartItem={addCartItem} />
+                  <ProductCard
+                    product={product}
+                    availability={inventory[product.sku]}
+                    addCartItem={addCartItem}
+                  />
                 </Column>
               ))}
             </Column.Group>

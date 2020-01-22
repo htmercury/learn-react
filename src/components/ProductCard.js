@@ -3,9 +3,18 @@ import React, { useEffect, useState } from "react";
 import "rbx/index.css";
 import { Card, Content, Divider, Image, Title, Button } from "rbx";
 
-const ProductCard = ({ product, addCartItem }) => {
-  const sizes = ["S", "M", "L", "XL"];
-  const [sizeSelected, setSizeSelected] = useState(sizes[0]);
+const ProductCard = ({ product, availability, addCartItem }) => {
+  let sizes = ["S", "M", "L", "XL"];
+  if (availability === undefined) {
+    availability = {
+        S: 0,
+        M: 0,
+        L: 0,
+        XL: 0
+    }
+  }
+
+  const [sizeSelected, setSizeSelected] = useState();
 
   const cartItem = {
     sku: product.sku,
@@ -33,6 +42,7 @@ const ProductCard = ({ product, addCartItem }) => {
               <Button
                 color={size === sizeSelected ? "black" : null}
                 onClick={() => setSizeSelected(size)}
+                disabled={availability[size] === 0}
                 key={size}
               >
                 {size}
@@ -47,7 +57,11 @@ const ProductCard = ({ product, addCartItem }) => {
               marginTop: "10px"
             }}
           >
-            <Button color="black" onClick={() => addCartItem(cartItem)}>
+            <Button
+              color="black"
+              onClick={() => addCartItem(cartItem)}
+              disabled={!sizes.some(s => availability[s] > 0)}
+            >
               Add to cart
             </Button>
           </Button.Group>

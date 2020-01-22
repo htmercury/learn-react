@@ -32,7 +32,7 @@ const CartCard = ({ item, state }) => {
               {item.product.title}
             </Title>
             <Title as="p" subtitle size={6}>
-              <small>{item.size + "|" + item.product.style}</small>
+              <small>{item.size + " | " + item.product.style}</small>
             </Title>
           </Media.Item>
 
