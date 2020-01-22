@@ -3,6 +3,8 @@ import Sidebar from "react-sidebar";
 import ProductCard from "./components/ProductCard";
 import CartCard from "./components/CartCard";
 
+import { firebaseDb } from "./components/shared/firebaseDb";
+
 import "rbx/index.css";
 import "./App.css";
 import {
@@ -34,7 +36,7 @@ const App = () => {
     { totalCost: 0, totalCount: 0 }
   );
 
-  const addCartItem = item => {
+  const addCartItem = (item, resetSelect) => {
     if (item.size === undefined) {
       return;
     }
@@ -46,11 +48,24 @@ const App = () => {
       let newCart = [...cart];
       for (let i = 0; i < newCart.length; i++) {
         if (newCart[i].sku === item.sku && newCart[i].size === item.size) {
-          newCart[i].count += 1;
+          // check if it doesn't exceed inventory
+          if (inventory[newCart[i].sku][newCart[i].size] > newCart[i].count) {
+            newCart[i].count += 1;
+            if (
+              newCart[i].count === inventory[newCart[i].sku][newCart[i].size]
+            ) {
+              resetSelect();
+            }
+          } else {
+            return;
+          }
         }
       }
       setCart(newCart);
     } else {
+      if (inventory[item.sku][item.size] === 1) {
+        resetSelect();
+      }
       setCart([...cart, item]);
     }
 
@@ -61,7 +76,12 @@ const App = () => {
     let newCart = [...cart];
     for (let i = 0; i < newCart.length; i++) {
       if (newCart[i].sku === item.sku && newCart[i].size === item.size) {
-        newCart[i].count += 1;
+        // check if it doesn't exceed inventory
+        if (inventory[newCart[i].sku][newCart[i].size] > newCart[i].count) {
+          newCart[i].count += 1;
+        } else {
+          return;
+        }
       }
     }
     setCart(newCart);
@@ -106,12 +126,15 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    const fetchInventory = async () => {
-      const response = await fetch("./data/inventory.json");
-      const json = await response.json();
-      setInventory(json);
+    const handleData = snap => {
+      if (snap.val()) {
+        setInventory(snap.val());
+      }
     };
-    fetchInventory();
+    firebaseDb.on("value", handleData, error => alert(error));
+    return () => {
+      firebaseDb.off("value", handleData);
+    };
   }, []);
 
   return (
@@ -211,6 +234,7 @@ const App = () => {
                     product={product}
                     availability={inventory[product.sku]}
                     addCartItem={addCartItem}
+                    cart={cart}
                   />
                 </Column>
               ))}

@@ -3,15 +3,15 @@ import React, { useEffect, useState } from "react";
 import "rbx/index.css";
 import { Card, Content, Divider, Image, Title, Button } from "rbx";
 
-const ProductCard = ({ product, availability, addCartItem }) => {
+const ProductCard = ({ product, cart, availability, addCartItem }) => {
   let sizes = ["S", "M", "L", "XL"];
   if (availability === undefined) {
     availability = {
-        S: 0,
-        M: 0,
-        L: 0,
-        XL: 0
-    }
+      S: 0,
+      M: 0,
+      L: 0,
+      XL: 0
+    };
   }
 
   const [sizeSelected, setSizeSelected] = useState();
@@ -23,6 +23,19 @@ const ProductCard = ({ product, availability, addCartItem }) => {
     count: 1,
     product
   };
+
+  const sizeAvailable = size => {
+    const matchedItems = cart.filter(
+      cartItem => cartItem.sku === product.sku && cartItem.size === size
+    );
+    if (matchedItems.length === 0) {
+      return true;
+    } else {
+      return matchedItems[0].count < availability[size];
+    }
+  };
+
+  const resetSelect = () => setSizeSelected(undefined);
 
   return (
     <Card>
@@ -42,7 +55,7 @@ const ProductCard = ({ product, availability, addCartItem }) => {
               <Button
                 color={size === sizeSelected ? "black" : null}
                 onClick={() => setSizeSelected(size)}
-                disabled={availability[size] === 0}
+                disabled={availability[size] === 0 || !sizeAvailable(size)}
                 key={size}
               >
                 {size}
@@ -59,7 +72,7 @@ const ProductCard = ({ product, availability, addCartItem }) => {
           >
             <Button
               color="black"
-              onClick={() => addCartItem(cartItem)}
+              onClick={() => addCartItem(cartItem, resetSelect)}
               disabled={!sizes.some(s => availability[s] > 0)}
             >
               Add to cart
