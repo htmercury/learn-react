@@ -15,7 +15,10 @@ import {
   Field,
   Control,
   Icon,
-  Hero
+  Hero,
+  Media,
+  Delete,
+  Level
 } from "rbx";
 
 const App = () => {
@@ -55,7 +58,7 @@ const App = () => {
             <Navbar.Item as="div">
               <Field kind="group">
                 <Control>
-                  <Button color="primary" onClick={() => setOpenSidebar(true)}>
+                  <Button color="primary" onClick={() => setOpenSidebar(!openSidebar)}>
                     <Icon>ƒ</Icon>
                     <span>Cart</span>
                   </Button>
@@ -76,6 +79,73 @@ const App = () => {
                     <Title as="h2" subtitle>
                       Your items:
                     </Title>
+                    <div>
+                      <Card paddingless>
+                        <Card.Content>
+                          <Media>
+                            <Media.Item as="figure" align="left">
+                              <Image.Container as="p" size={64}>
+                                <Image
+                                  alt="64x64"
+                                  // src={`data/products/${item.sku}_1.jpg`}
+                                  src={`data/products/12064273040195392_1.jpg`}
+                                />
+                              </Image.Container>
+                            </Media.Item>
+
+                            <Media.Item align="center">
+                              <Title as="p" size={6}>
+                                {/* {item.title} */}
+                                Cat Tee Black T-Shirt
+                              </Title>
+                              <Title as="p" subtitle size={6}>
+                                <small>
+                                  {"S" + "|" + "Black with custom print"}
+                                </small>
+                                {/* <small>{item.size + "|" + item.style}</small> */}
+                              </Title>
+                            </Media.Item>
+
+                            <Media.Item align="right">
+                              <div style={{ float: "right" }}>
+                                <Delete />
+                              </div>
+                              <br />
+                              <div
+                                style={{
+                                  margin: "16%",
+                                  color: "green"
+                                }}
+                              >
+                                <p>{`$10.90`}</p>
+                                {/* <p>{`$${parseFloat(item.price).toFixed(2)}`}</p> */}
+                              </div>
+                              <Level breakpoint="mobile">
+                                <Level.Item align="left">
+                                  <Level.Item as="a">
+                                    <Button.Group hasAddons align="right">
+                                      <Button>
+                                        <Icon size="small">+</Icon>
+                                      </Button>
+                                      <Button>
+                                        <Icon size="small">-</Icon>
+                                      </Button>
+                                    </Button.Group>
+                                  </Level.Item>
+                                </Level.Item>
+                              </Level>
+                              <Content>
+                                <p>
+                                  <small>Quantity: 1</small>
+                                  {/* <small>Quantity: {item.numberSelected}</small> */}
+                                  <br />
+                                </p>
+                              </Content>
+                            </Media.Item>
+                          </Media>
+                        </Card.Content>
+                      </Card>
+                    </div>
                   </Container>
                 </Hero.Body>
               </Hero>
@@ -89,9 +159,8 @@ const App = () => {
               transition: "left .1s, right .1s",
               WebkitTransition: "-webkit-transform .1s ease-out",
               paddingTop: "53px",
-              width: "300px",
-              background: "white",
-              position: "fixed"
+              width: "450px",
+              background: "white"
             }
           }}
           pullRight
