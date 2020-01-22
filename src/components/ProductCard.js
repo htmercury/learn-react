@@ -75,7 +75,7 @@ const ProductCard = ({ product, cart, availability, addCartItem }) => {
               onClick={() => addCartItem(cartItem, resetSelect)}
               disabled={!sizes.some(s => availability[s] > 0)}
             >
-              Add to cart
+              {!sizes.some(s => availability[s] > 0) ? "Sold Out" : "Add to cart" }
             </Button>
           </Button.Group>
         </Content>
