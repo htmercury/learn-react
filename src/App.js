@@ -3,6 +3,9 @@ import Sidebar from "react-sidebar";
 import ProductCard from "./components/ProductCard";
 import CartCard from "./components/CartCard";
 
+import firebase from "firebase/app";
+import "firebase/auth";
+import StyledFirebaseAuth from "react-firebaseui/StyledFirebaseAuth";
 import { firebaseDb } from "./components/shared/firebaseDb";
 
 import "rbx/index.css";
@@ -20,7 +23,16 @@ import {
   Box
 } from "rbx";
 
+const uiConfig = {
+  signInFlow: "popup",
+  signInOptions: [firebase.auth.GoogleAuthProvider.PROVIDER_ID],
+  callbacks: {
+    signInSuccessWithAuthResult: () => false
+  }
+};
+
 const App = () => {
+  const [user, setUser] = useState(undefined);
   const [data, setData] = useState({});
   const [inventory, setInventory] = useState({});
   const [openSidebar, setOpenSidebar] = useState(false);
@@ -137,9 +149,13 @@ const App = () => {
     };
   }, []);
 
+  useEffect(() => {
+    firebase.auth().onAuthStateChanged(setUser);
+  }, []);
+
   return (
     <React.Fragment>
-      <Navbar color="dark" fixed="top">
+      <Navbar color="dark" fixed="top" style={{ height: "88px" }}>
         <Navbar.Brand>
           <Navbar.Item>
             <img src="./logo192.png" alt="New Shopping Cart Logo" />
@@ -151,6 +167,27 @@ const App = () => {
             <Navbar.Item>New Shopping Cart</Navbar.Item>
           </Navbar.Segment>
           <Navbar.Segment align="end">
+            <Navbar.Item as="div">
+              {user ? (
+                <React.Fragment>
+                  <div style={{ paddingRight: "15px" }}>
+                    Welcome, {user.displayName}
+                  </div>
+                  <Button
+                    primary="true"
+                    onClick={() => firebase.auth().signOut()}
+                  >
+                    Log out
+                  </Button>
+                </React.Fragment>
+              ) : (
+                <StyledFirebaseAuth
+                  uiConfig={uiConfig}
+                  firebaseAuth={firebase.auth()}
+                />
+              )}
+            </Navbar.Item>
+
             <Navbar.Item as="div">
               <Field kind="group">
                 <Control>
@@ -167,7 +204,7 @@ const App = () => {
           </Navbar.Segment>
         </Navbar.Menu>
       </Navbar>
-      <Container fluid style={{ margin: 0, marginTop: "-20px" }}>
+      <Container fluid style={{ margin: 0, marginTop: "-45px" }}>
         <Sidebar
           sidebar={
             <Container>
@@ -225,7 +262,7 @@ const App = () => {
         >
           <p></p>
         </Sidebar>
-        <Container style={{ marginTop: "20px" }}>
+        <Container style={{ marginTop: "80px" }}>
           {productGroups.map((products, idx) => (
             <Column.Group key={idx}>
               {products.map(product => (
